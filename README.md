@@ -91,6 +91,39 @@
 | `GET`  | `/api/dashboard/stats` | Data ringkasan (Total Peserta, dll) |
 | `GET`  | `/api/dashboard/chart` | Data untuk grafik tren bulanan      |
 
+## 📖 Dokumentasi API (Interactive)
+
+Proyek ini menggunakan **Laravel Scramble** untuk generate dokumentasi API secara otomatis dari kode.
+
+### Akses Dokumentasi
+
+| URL              | Deskripsi                                      |
+| :--------------- | :--------------------------------------------- |
+| `/docs/api`      | UI interaktif untuk menjelajahi API            |
+| `/docs/api.json` | OpenAPI 3.0 specification (untuk Postman, dll) |
+
+### Cara Mengakses
+
+1. Jalankan server lokal:
+
+    ```bash
+    php artisan serve
+    ```
+
+2. Buka browser dan akses:
+    ```
+    http://localhost:8000/docs/api
+    ```
+
+> **Catatan**: Dokumentasi hanya tersedia di environment `local` secara default.
+
+## 🔒 Fitur Keamanan
+
+-   **Rate Limiting**: Login (5/menit), Register (3/menit).
+-   **Account Lockout**: Kunci 15 menit setelah 5x gagal login.
+-   **Security Headers**: X-Frame-Options, X-XSS-Protection, dll.
+-   **Audit Logging**: Semua aktivitas login dicatat di `storage/logs/security-*.log`.
+
 ---
 
 <p align="center">
