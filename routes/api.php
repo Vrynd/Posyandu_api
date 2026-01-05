@@ -32,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Peserta management
     Route::apiResource('/peserta', PesertaController::class);
+    Route::get('/peserta/{peserta}/latest-visit', [PesertaController::class, 'getLatestVisit']);
 
     // Kunjungan Management
     Route::apiResource('/kunjungan', KunjunganController::class);

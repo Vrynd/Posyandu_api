@@ -212,6 +212,108 @@ class PesertaController extends Controller
     }
 
     /**
+     * Get the latest visit for a peserta with mapped data_kesehatan
+     */
+    public function getLatestVisit($id): JsonResponse
+    {
+        $peserta = Peserta::find($id);
+
+        if (!$peserta) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Peserta tidak ditemukan'
+            ], 404);
+        }
+
+        $latestKunjungan = $peserta->latestKunjungan;
+
+        if (!$latestKunjungan) {
+            return response()->json([
+                'success' => true,
+                'data' => null
+            ]);
+        }
+
+        // Explicitly load the category detail for this visit
+        $latestKunjungan->loadDetail();
+        $detail = $latestKunjungan->detail;
+
+        // Custom mapping based on frontend requirements
+        $response = [
+            'id' => $latestKunjungan->id,
+            'tanggal_kunjungan' => $latestKunjungan->tanggal_kunjungan?->format('Y-m-d'),
+            'berat_badan' => $latestKunjungan->berat_badan,
+            'tinggi_badan' => $detail?->tinggi_badan ?? null,
+            'tekanan_darah' => $detail?->tekanan_darah ?? null,
+            'kategori' => $peserta->kategori,
+            'data_kesehatan' => []
+        ];
+
+        // Map data_kesehatan fields based on category
+        if ($detail) {
+            $categoryFields = match ($peserta->kategori) {
+                'bumil' => [
+                    'umur_kehamilan',
+                    'lila',
+                    'skrining_tbc',
+                    'tablet_darah',
+                    'asi_eksklusif',
+                    'mt_bumil_kek',
+                    'kelas_bumil',
+                    'penyuluhan'
+                ],
+                'balita' => [
+                    'umur_bulan',
+                    'kesimpulan_bb',
+                    'panjang_badan',
+                    'lingkar_kepala',
+                    'lingkar_lengan',
+                    'skrining_tbc',
+                    'balita_mendapatkan',
+                    'edukasi_konseling'
+                ],
+                'remaja' => [
+                    'imt',
+                    'lingkar_perut',
+                    'gula_darah',
+                    'kadar_hb',
+                    'skrining_tbc',
+                    'skrining_mental',
+                    'edukasi'
+                ],
+                'produktif', 'lansia' => [
+                    'imt',
+                    'lingkar_perut',
+                    'gula_darah',
+                    'asam_urat',
+                    'kolesterol',
+                    'tes_mata',
+                    'tes_telinga',
+                    'skrining_tbc',
+                    'skrining_puma',
+                    'adl',
+                    'jumlah_skor_adl',
+                    'tingkat_kemandirian',
+                    'alat_kontrasepsi',
+                    'edukasi'
+                ],
+                default => []
+            };
+
+            foreach ($categoryFields as $field) {
+                if (isset($detail->$field)) {
+                    $response['data_kesehatan'][$field] = $detail->$field;
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $response
+        ]);
+    }
+
+    /**
      * Remove peserta
      */
     public function destroy($id): JsonResponse
