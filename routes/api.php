@@ -18,8 +18,8 @@ use App\Http\Controllers\Api\KunjunganController;
 */
 
 // Public authentication routes
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 
 // Protected routes (require authentication)

@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -16,24 +20,8 @@ class AuthController extends Controller
     /**
      * Register a new user
      */
-    public function register(Request $request): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'nik' => 'required|string|size:16|unique:users',
-            'phone_number' => 'required|string|max:20',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -58,33 +46,74 @@ class AuthController extends Controller
     }
 
     /**
-     * Login user and create token
+     * Login user and create token (with lockout protection)
      */
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'identifier' => 'required|string',
-            'password' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
         $user = User::findByEmailOrNik($request->identifier);
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        // Check if user exists
+        if (!$user) {
+            Log::channel('security')->warning('Login failed: User not found', [
+                'identifier' => $request->identifier,
+                'ip' => $request->ip(),
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid login credentials',
             ], 401);
         }
 
+        // Check if account is locked
+        if ($user->locked_until && Carbon::parse($user->locked_until)->isFuture()) {
+            $remainingMinutes = Carbon::now()->diffInMinutes(Carbon::parse($user->locked_until));
+            return response()->json([
+                'success' => false,
+                'message' => "Akun terkunci. Silakan coba lagi dalam {$remainingMinutes} menit.",
+            ], 423);
+        }
+
+        // Check password
+        if (!Hash::check($request->password, $user->password)) {
+            // Increment failed attempts
+            $user->failed_login_attempts++;
+
+            // Lock account if reached 5 attempts
+            if ($user->failed_login_attempts >= 5) {
+                $user->locked_until = Carbon::now()->addMinutes(15);
+                $user->save();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun terkunci selama 15 menit karena terlalu banyak percobaan gagal.',
+                ], 423);
+            }
+
+            $user->save();
+            $attemptsLeft = 5 - $user->failed_login_attempts;
+            Log::channel('security')->warning('Login failed: Invalid password', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'ip' => $request->ip(),
+                'attempts_left' => $attemptsLeft,
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => "Password salah. Sisa percobaan: {$attemptsLeft}.",
+            ], 401);
+        }
+
+        // Reset lockout on successful login
+        $user->failed_login_attempts = 0;
+        $user->locked_until = null;
+        $user->save();
+
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        Log::channel('security')->info('Login successful', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'ip' => $request->ip(),
+        ]);
 
         return response()->json([
             'success' => true,
