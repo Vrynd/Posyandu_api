@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PesertaController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\KunjunganController;
+use App\Http\Controllers\Api\PengaduanController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,4 +41,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
     Route::get('/dashboard/chart', [DashboardController::class, 'getChartData']);
+
+    // Pengaduan (Bug Report)
+    Route::get('/pengaduan/stats', [PengaduanController::class, 'stats']);
+    Route::get('/pengaduan', [PengaduanController::class, 'index']);
+    Route::post('/pengaduan', [PengaduanController::class, 'store']);
+    Route::get('/pengaduan/{id}', [PengaduanController::class, 'show']);
+    Route::put('/pengaduan/{id}/status', [PengaduanController::class, 'updateStatus']);
+    Route::post('/pengaduan/{id}/response', [PengaduanController::class, 'addResponse']);
 });
