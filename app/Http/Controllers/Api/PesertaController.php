@@ -10,6 +10,7 @@ use App\Models\PesertaDewasa;
 use App\Models\PesertaRemaja;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -211,11 +212,10 @@ class PesertaController extends Controller
         }
     }
 
-    /**
-     * Get the latest visit for a peserta with mapped data_kesehatan
-     */
     public function getLatestVisit($id): JsonResponse
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
         $peserta = Peserta::find($id);
 
         if (!$peserta) {
@@ -233,79 +233,43 @@ class PesertaController extends Controller
                 'data' => null
             ]);
         }
-
         // Explicitly load the category detail for this visit
         $latestKunjungan->loadDetail();
         $detail = $latestKunjungan->detail;
 
-        // Custom mapping based on frontend requirements
-        $response = [
-            'id' => $latestKunjungan->id,
-            'tanggal_kunjungan' => $latestKunjungan->tanggal_kunjungan?->format('Y-m-d'),
-            'berat_badan' => $latestKunjungan->berat_badan,
-            'tinggi_badan' => $detail?->tinggi_badan ?? null,
-            'tekanan_darah' => $detail?->tekanan_darah ?? null,
-            'kategori' => $peserta->kategori,
-            'data_kesehatan' => []
-        ];
+        // Map detail based on category
+        $detailData = [];
 
-        // Map data_kesehatan fields based on category
+        // Common field across most categories
+        $detailData['berat_badan'] = $latestKunjungan->berat_badan;
+
         if ($detail) {
-            $categoryFields = match ($peserta->kategori) {
-                'bumil' => [
-                    'umur_kehamilan',
-                    'lila',
-                    'skrining_tbc',
-                    'tablet_darah',
-                    'asi_eksklusif',
-                    'mt_bumil_kek',
-                    'kelas_bumil',
-                    'penyuluhan'
-                ],
-                'balita' => [
-                    'umur_bulan',
-                    'kesimpulan_bb',
-                    'panjang_badan',
-                    'lingkar_kepala',
-                    'lingkar_lengan',
-                    'skrining_tbc',
-                    'balita_mendapatkan',
-                    'edukasi_konseling'
-                ],
-                'remaja' => [
-                    'imt',
-                    'lingkar_perut',
-                    'gula_darah',
-                    'kadar_hb',
-                    'skrining_tbc',
-                    'skrining_mental',
-                    'edukasi'
-                ],
-                'produktif', 'lansia' => [
-                    'imt',
-                    'lingkar_perut',
-                    'gula_darah',
-                    'asam_urat',
-                    'kolesterol',
-                    'tes_mata',
-                    'tes_telinga',
-                    'skrining_tbc',
-                    'skrining_puma',
-                    'adl',
-                    'jumlah_skor_adl',
-                    'tingkat_kemandirian',
-                    'alat_kontrasepsi',
-                    'edukasi'
-                ],
-                default => []
-            };
+            // Merge all attributes from the category detail model
+            // This ensures we don't miss any fields like ada_gejala_sakit, etc.
+            $detailData = array_merge($detailData, $detail->makeHidden(['id', 'timestamps', 'created_at', 'updated_at'])->toArray());
 
-            foreach ($categoryFields as $field) {
-                if (isset($detail->$field)) {
-                    $response['data_kesehatan'][$field] = $detail->$field;
-                }
+            // Special mappings if needed (e.g. keeping previous agreed keys while adding actual ones)
+            if ($peserta->kategori === 'balita') {
+                // frontend explicitly asked for tinggi_badan previously, 
+                // but now they want consistency with database (panjang_badan).
+                // To be safe during transition, we can provide both or just sync to database.
+                // The plan says: Use panjang_badan (instead of tinggi_badan).
+            }
+
+            if ($peserta->kategori === 'bumil') {
+                $detailData['hpht'] = null; // Still not in DB
             }
         }
+
+        // Base response structure following frontend requirements
+        $response = [
+            'id' => $latestKunjungan->id,
+            'peserta_id' => $latestKunjungan->peserta_id,
+            'tanggal_kunjungan' => $latestKunjungan->tanggal_kunjungan?->format('Y-m-d'),
+            'lokasi_pemeriksaan' => $latestKunjungan->lokasi,
+            'kategori' => $peserta->kategori,
+            'detail' => $detailData
+        ];
 
         return response()->json([
             'success' => true,
