@@ -41,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
     Route::get('/dashboard/chart', [DashboardController::class, 'getChartData']);
+    Route::get('/dashboard/registrations-chart', [DashboardController::class, 'getRegistrationsChart']);
 
     // Pengaduan (Bug Report)
     Route::get('/pengaduan/stats', [PengaduanController::class, 'stats']);

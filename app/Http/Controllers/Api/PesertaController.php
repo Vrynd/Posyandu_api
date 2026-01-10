@@ -212,6 +212,23 @@ class PesertaController extends Controller
         }
     }
 
+    /**
+     * Detail Pemeriksaan Terakhir
+     * 
+     * Mengambil data pemeriksaan kesehatan terbaru untuk seorang peserta.
+     * Response ini menggabungkan data master kunjungan dengan detail spesifik kategori.
+     * 
+     * @response {
+     *  "success": true,
+     *  "data": {
+     *    "id": 1,
+     *    "peserta_id": 1,
+     *    "tanggal_kunjungan": "2024-01-01",
+     *    "kategori": "balita",
+     *    "detail": { "panjang_badan": 85.0, "kesimpulan_bb": "NAIK" }
+     *  }
+     * }
+     */
     public function getLatestVisit($id): JsonResponse
     {
         /** @var \App\Models\User $user */

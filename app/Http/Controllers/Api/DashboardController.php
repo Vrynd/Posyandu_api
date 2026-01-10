@@ -7,12 +7,15 @@ use App\Models\Kunjungan;
 use App\Models\Peserta;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     /**
-     * Get summary statistics for the dashboard
+     * Ringkasan Statistik Dashboard
+     * 
+     * Mengambil data jumlah peserta per kategori dan total kunjungan hari ini.
      */
     public function getStats(): JsonResponse
     {
@@ -48,7 +51,9 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get monthly visit data for charts
+     * Grafik Kunjungan Bulanan
+     * 
+     * Mengambil data jumlah kunjungan selama 12 bulan terakhir.
      */
     public function getChartData(): JsonResponse
     {
@@ -81,6 +86,59 @@ class DashboardController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Dashboard chart data retrieved',
+            'data' => $formattedData
+        ]);
+    }
+
+    /**
+     * Grafik Pendaftaran Peserta Baru
+     * 
+     * Mengambil data jumlah pendaftaran peserta baru per bulan.
+     * 
+     * @queryParam year Tahun pendaftaran (default: tahun berjalan). Example: 2026
+     * 
+     * @response {
+     *  "success": true,
+     *  "message": "Dashboard registration chart data retrieved",
+     *  "data": [
+     *    { "label": "Jan 2026", "total": 15 },
+     *    { "label": "Feb 2026", "total": 8 }
+     *  ]
+     * }
+     */
+    public function getRegistrationsChart(Request $request): JsonResponse
+    {
+        $year = $request->get('year', date('Y'));
+
+        $months = collect([]);
+        for ($m = 1; $m <= 12; $m++) {
+            $monthDate = Carbon::create($year, $m, 1);
+            $months->push([
+                'month' => $monthDate->format('M'),
+                'year' => $monthDate->format('Y'),
+                'raw' => $monthDate->format('Y-m')
+            ]);
+        }
+
+        $registrations = Peserta::select(
+            DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month_year"),
+            DB::raw('count(*) as total')
+        )
+            ->whereYear('created_at', $year)
+            ->groupBy('month_year')
+            ->get()
+            ->pluck('total', 'month_year');
+
+        $formattedData = $months->map(function ($item) use ($registrations) {
+            return [
+                'label' => $item['month'] . ' ' . $item['year'],
+                'total' => $registrations->get($item['raw'], 0)
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dashboard registration chart data retrieved',
             'data' => $formattedData
         ]);
     }
