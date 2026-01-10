@@ -15,7 +15,10 @@ use Illuminate\Support\Facades\Validator;
 class PengaduanController extends Controller
 {
     /**
-     * List pengaduan with filters (role-based)
+     * Daftar Pengaduan
+     * 
+     * Menampilkan daftar pengaduan (bug report) dengan filter status dan kategori.
+     * Admin dapat melihat seluruh data, sedangkan Kader hanya melihat miliknya sendiri.
      */
     public function index(Request $request): JsonResponse
     {
@@ -82,7 +85,9 @@ class PengaduanController extends Controller
     }
 
     /**
-     * Create new pengaduan (multipart/form-data)
+     * Buat Pengaduan Baru
+     * 
+     * Mengirimkan laporan bug atau keluhan baru (mendukung upload gambar).
      */
     public function store(Request $request): JsonResponse
     {
@@ -134,7 +139,9 @@ class PengaduanController extends Controller
     }
 
     /**
-     * Get pengaduan detail with responses
+     * Detail Pengaduan
+     * 
+     * Menampilkan informasi rincian pengaduan beserta riwayat respon dari admin.
      */
     public function show($id): JsonResponse
     {
@@ -190,7 +197,9 @@ class PengaduanController extends Controller
     }
 
     /**
-     * Update pengaduan status (Admin only)
+     * Update Status Pengaduan (Hanya Admin)
+     * 
+     * Mengubah status penyelesaian pengaduan (pending, in_progress, resolved, rejected).
      */
     public function updateStatus(Request $request, $id): JsonResponse
     {
@@ -234,7 +243,9 @@ class PengaduanController extends Controller
     }
 
     /**
-     * Add admin response (Admin only)
+     * Berikan Respon Admin (Hanya Admin)
+     * 
+     * Menambahkan tanggapan atau solusi dari admin untuk pengaduan tertentu.
      */
     public function addResponse(Request $request, $id): JsonResponse
     {
@@ -283,7 +294,9 @@ class PengaduanController extends Controller
     }
 
     /**
-     * Get statistics (Admin only)
+     * Statistik Pengaduan (Hanya Admin)
+     * 
+     * Mengambil ringkasan jumlah pengaduan berdasarkan statusnya.
      */
     public function stats(): JsonResponse
     {

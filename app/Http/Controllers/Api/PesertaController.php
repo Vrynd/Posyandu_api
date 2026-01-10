@@ -18,7 +18,9 @@ use Illuminate\Validation\Rule;
 class PesertaController extends Controller
 {
     /**
-     * List all peserta with filtering and search
+     * Daftar Peserta
+     * 
+     * Menampilkan daftar seluruh peserta dengan fitur pencarian dan filter kategori.
      */
     public function index(Request $request): JsonResponse
     {
@@ -57,7 +59,9 @@ class PesertaController extends Controller
     }
 
     /**
-     * Store a new peserta (Master + Category Specific)
+     * Tambah Peserta Baru
+     * 
+     * Mendaftarkan peserta baru beserta data spesifik kategorinya.
      */
     public function store(Request $request): JsonResponse
     {
@@ -131,7 +135,9 @@ class PesertaController extends Controller
     }
 
     /**
-     * Get detail of a peserta
+     * Detail Peserta
+     * 
+     * Menampilkan data lengkap seorang peserta termasuk data ekstensi kategori.
      */
     public function show($id): JsonResponse
     {
@@ -155,7 +161,9 @@ class PesertaController extends Controller
     }
 
     /**
-     * Update peserta
+     * Update Data Peserta
+     * 
+     * Memperbarui data master dan data kategori peserta.
      */
     public function update(Request $request, $id): JsonResponse
     {
@@ -295,7 +303,9 @@ class PesertaController extends Controller
     }
 
     /**
-     * Remove peserta
+     * Hapus Peserta
+     * 
+     * Menghapus data peserta beserta seluruh riwayat kunjungannya secara permanen.
      */
     public function destroy($id): JsonResponse
     {

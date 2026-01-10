@@ -53,7 +53,23 @@ class DashboardController extends Controller
     /**
      * Grafik Kunjungan Bulanan
      * 
-     * Mengambil data jumlah kunjungan selama 12 bulan terakhir.
+     * Mengambil data jumlah kunjungan selama 12 bulan terakhir, dikelompokkan per kategori kesehatan.
+     * 
+     * @response {
+     *  "success": true,
+     *  "message": "Dashboard chart data retrieved",
+     *  "data": [
+     *    { 
+     *      "label": "Jan 2026", 
+     *      "total": 11,
+     *      "bumil": 3,
+     *      "balita": 2,
+     *      "remaja": 2,
+     *      "produktif": 2,
+     *      "lansia": 2
+     *    }
+     *  ]
+     * }
      */
     public function getChartData(): JsonResponse
     {
@@ -67,20 +83,36 @@ class DashboardController extends Controller
             ]);
         }
 
-        $visits = Kunjungan::select(
-            DB::raw("DATE_FORMAT(tanggal_kunjungan, '%Y-%m') as month_year"),
-            DB::raw('count(*) as total')
-        )
-            ->where('tanggal_kunjungan', '>=', Carbon::now()->subMonths(11)->startOfMonth())
-            ->groupBy('month_year')
-            ->get()
-            ->pluck('total', 'month_year');
+        $visits = Kunjungan::join('peserta', 'kunjungan.peserta_id', '=', 'peserta.id')
+            ->select(
+                DB::raw("DATE_FORMAT(kunjungan.tanggal_kunjungan, '%Y-%m') as month_year"),
+                'peserta.kategori',
+                DB::raw('count(*) as total')
+            )
+            ->where('kunjungan.tanggal_kunjungan', '>=', Carbon::now()->subMonths(11)->startOfMonth())
+            ->groupBy('month_year', 'peserta.kategori')
+            ->get();
 
         $formattedData = $last12Months->map(function ($item) use ($visits) {
-            return [
+            $monthData = [
                 'label' => $item['month'] . ' ' . $item['year'],
-                'total' => $visits->get($item['raw'], 0)
+                'total' => 0,
+                'bumil' => 0,
+                'balita' => 0,
+                'remaja' => 0,
+                'produktif' => 0,
+                'lansia' => 0
             ];
+
+            $monthVisits = $visits->where('month_year', $item['raw']);
+            foreach ($monthVisits as $visit) {
+                $monthData['total'] += $visit->total;
+                if (array_key_exists($visit->kategori, $monthData)) {
+                    $monthData[$visit->kategori] = (int) $visit->total;
+                }
+            }
+
+            return $monthData;
         });
 
         return response()->json([

@@ -18,7 +18,9 @@ use Illuminate\Validation\Rule;
 class AuthController extends Controller
 {
     /**
-     * Register a new user
+     * Registrasi Pengguna Baru
+     * 
+     * Mendaftarkan akun kader baru ke dalam sistem.
      */
     public function register(RegisterRequest $request): JsonResponse
     {
@@ -46,7 +48,10 @@ class AuthController extends Controller
     }
 
     /**
-     * Login user and create token (with lockout protection)
+     * Login Pengguna
+     * 
+     * Masuk ke sistem menggunakan email atau NIK dan mendapatkan token akses.
+     * Dilengkapi dengan proteksi lockout akun setelah 5 kali percobaan gagal.
      */
     public function login(LoginRequest $request): JsonResponse
     {
@@ -127,7 +132,9 @@ class AuthController extends Controller
     }
 
     /**
-     * Logout user (revoke token)
+     * Logout Pengguna
+     * 
+     * Menghapus token akses yang sedang digunakan (revoke token).
      */
     public function logout(Request $request): JsonResponse
     {
@@ -140,7 +147,9 @@ class AuthController extends Controller
     }
 
     /**
-     * Get authenticated user profile
+     * Profil Pengguna
+     * 
+     * Mengambil data profil lengkap pengguna yang sedang login.
      */
     public function profile(Request $request): JsonResponse
     {
@@ -153,7 +162,9 @@ class AuthController extends Controller
     }
 
     /**
-     * Simplified Forgot Password (One-Step Reset)
+     * Lupa Password (Reset Satu Langkah)
+     * 
+     * Mengatur ulang password dengan memverifikasi NIK dan nomor telepon.
      */
     public function forgotPassword(Request $request): JsonResponse
     {
@@ -193,7 +204,9 @@ class AuthController extends Controller
     }
 
     /**
-     * Update user profile (Basic Data)
+     * Update Profil
+     * 
+     * Memperbarui data dasar profil pengguna (nama, telepon, avatar).
      */
     public function updateProfile(Request $request): JsonResponse
     {
@@ -225,7 +238,9 @@ class AuthController extends Controller
     }
 
     /**
-     * Change user password
+     * Ganti Password
+     * 
+     * Mengubah password pengguna dengan memverifikasi password saat ini.
      */
     public function changePassword(Request $request): JsonResponse
     {
@@ -262,7 +277,9 @@ class AuthController extends Controller
     }
 
     /**
-     * Delete user account
+     * Hapus Akun
+     * 
+     * Menghapus akun pengguna secara permanen. Memerlukan konfirmasi teks "HAPUS AKUN".
      */
     public function deleteAccount(Request $request): JsonResponse
     {

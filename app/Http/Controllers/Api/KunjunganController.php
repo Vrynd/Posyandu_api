@@ -18,7 +18,9 @@ use Illuminate\Support\Facades\Validator;
 class KunjunganController extends Controller
 {
     /**
-     * List all kunjungan with filtering
+     * Riwayat Kunjungan
+     * 
+     * Menampilkan daftar riwayat kunjungan peserta dengan filter pencarian.
      */
     public function index(Request $request): JsonResponse
     {
@@ -47,7 +49,9 @@ class KunjunganController extends Controller
     }
 
     /**
-     * Record a new kunjungan
+     * Catat Kunjungan Baru
+     * 
+     * Membuat data kunjungan baru beserta detail pemeriksaan spesifik kategorinya.
      */
     public function store(Request $request): JsonResponse
     {
@@ -99,7 +103,9 @@ class KunjunganController extends Controller
     }
 
     /**
-     * Show detail of a kunjungan
+     * Detail Kunjungan
+     * 
+     * Menampilkan informasi lengkap satu record kunjungan beserta data pemeriksaannya.
      */
     public function show($id): JsonResponse
     {
@@ -121,7 +127,9 @@ class KunjunganController extends Controller
     }
 
     /**
-     * Update a kunjungan record
+     * Update Data Kunjungan
+     * 
+     * Memperbarui informasi pada record kunjungan dan data pemeriksaan terkait.
      */
     public function update(Request $request, $id): JsonResponse
     {
@@ -176,7 +184,9 @@ class KunjunganController extends Controller
     }
 
     /**
-     * Remove a kunjungan record
+     * Hapus Kunjungan
+     * 
+     * Menghapus record kunjungan beserta data detail pemeriksaannya secara permanen.
      */
     public function destroy($id): JsonResponse
     {
