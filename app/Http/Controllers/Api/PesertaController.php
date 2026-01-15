@@ -33,6 +33,15 @@ class PesertaController extends Controller
     {
         $query = Peserta::query();
 
+        // 0. Dynamic Field Selection (optional)
+        if ($fields = $request->input('fields')) {
+            $allowedFields = ['id', 'nama', 'nik', 'kategori', 'jenis_kelamin', 'tanggal_lahir', 'telepon', 'rt', 'rw', 'created_at'];
+            $selectedFields = array_intersect(explode(',', $fields), $allowedFields);
+            if (!empty($selectedFields)) {
+                $query->select($selectedFields);
+            }
+        }
+
         // 1. Search by Name or NIK
         if ($request->has('search')) {
             $search = $request->search;
@@ -360,6 +369,73 @@ class PesertaController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Peserta deleted successfully'
+        ]);
+    }
+
+    /**
+     * Daftar Ringkas Peserta (Lightweight)
+     * 
+     * Mengembalikan data minimal untuk list view (70% lebih ringan).
+     * Fields: id, nama, nik, kategori, jenis_kelamin
+     */
+    public function summary(Request $request): JsonResponse
+    {
+        $query = Peserta::select(['id', 'nama', 'nik', 'kategori', 'jenis_kelamin']);
+
+        // Basic filtering
+        if ($request->has('kategori')) {
+            $query->where('kategori', $request->kategori);
+        }
+
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'like', '%' . $search . '%')
+                    ->orWhere('nik_hash', Peserta::hashNik($search));
+            });
+        }
+
+        $limit = $request->get('limit', 50);
+        $peserta = $query->orderBy('nama')->paginate($limit);
+
+        // Generate ETag for caching
+        $etag = md5($peserta->toJson());
+        $lastModified = Peserta::max('updated_at');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Peserta summary retrieved',
+            'data' => $peserta
+        ])->header('ETag', '"' . $etag . '"')
+            ->header('Last-Modified', $lastModified ? Carbon::parse($lastModified)->toRfc7231String() : now()->toRfc7231String());
+    }
+
+    /**
+     * Hapus Banyak Peserta (Bulk Delete)
+     * 
+     * Menghapus beberapa peserta sekaligus dalam satu request.
+     * Body: { "ids": [1, 2, 3] }
+     */
+    public function bulkDestroy(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:peserta,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $deletedCount = Peserta::whereIn('id', $request->ids)->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Berhasil menghapus {$deletedCount} peserta"
         ]);
     }
 

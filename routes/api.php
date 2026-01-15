@@ -32,6 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Peserta management
+    Route::get('/peserta/summary', [PesertaController::class, 'summary']);
+    Route::delete('/peserta/bulk', [PesertaController::class, 'bulkDestroy']);
     Route::apiResource('/peserta', PesertaController::class);
     Route::get('/peserta/{peserta}/latest-visit', [PesertaController::class, 'getLatestVisit']);
 
