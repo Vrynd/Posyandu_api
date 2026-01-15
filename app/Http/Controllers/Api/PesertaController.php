@@ -10,6 +10,7 @@ use App\Models\PesertaDewasa;
 use App\Models\PesertaRemaja;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -18,30 +19,54 @@ use Illuminate\Validation\Rule;
 class PesertaController extends Controller
 {
     /**
-     * Daftar Peserta
+     * Daftar Peserta (Server-Side Filtering)
      * 
-     * Menampilkan daftar seluruh peserta dengan fitur pencarian dan filter kategori.
+     * Menampilkan daftar peserta dengan filter lanjutan:
+     * - search: Nama atau NIK
+     * - kategori: Filter per kategori
+     * - gender: L (Laki-laki), P (Perempuan)
+     * - min_age/max_age: Rentang umur dalam tahun
+     * - sort_by: nama, tanggal_lahir, created_at
+     * - sort_order: asc, desc
      */
     public function index(Request $request): JsonResponse
     {
         $query = Peserta::query();
 
-        // Search by name
+        // 1. Search by Name or NIK
         if ($request->has('search')) {
-            $query->where('nama', 'like', '%' . $request->search . '%');
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'like', '%' . $search . '%')
+                    ->orWhere('nik_hash', Peserta::hashNik($search));
+            });
         }
 
-        // Search by NIK (exact)
-        if ($request->has('nik')) {
-            $query->where('nik_hash', Peserta::hashNik($request->nik));
-        }
-
-        // Filter by category
+        // 2. Filter by Category
         if ($request->has('kategori')) {
             $query->where('kategori', $request->kategori);
         }
 
-        // Filter by RT/RW
+        // 3. Filter by Gender (L/P mapping)
+        if ($request->has('gender')) {
+            $gender = $request->gender === 'L' ? 'Laki-Laki' : ($request->gender === 'P' ? 'Perempuan' : null);
+            if ($gender) {
+                $query->where('jenis_kelamin', $gender);
+            }
+        }
+
+        // 4. Filter by Age Range (min_age, max_age)
+        if ($request->has('min_age') || $request->has('max_age')) {
+            $now = Carbon::now();
+            if ($request->has('min_age')) {
+                $query->where('tanggal_lahir', '<=', $now->copy()->subYears($request->min_age)->endOfDay());
+            }
+            if ($request->has('max_age')) {
+                $query->where('tanggal_lahir', '>=', $now->copy()->subYears($request->max_age)->startOfDay());
+            }
+        }
+
+        // 5. Filter by RT/RW
         if ($request->has('rt')) {
             $query->where('rt', $request->rt);
         }
@@ -49,7 +74,19 @@ class PesertaController extends Controller
             $query->where('rw', $request->rw);
         }
 
-        $peserta = $query->with('latestKunjungan')->latest()->paginate($request->get('limit', 15));
+        // 6. Dynamic Sorting
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+
+        // Validate sort_by field to prevent SQL injection
+        if (in_array($sortBy, ['nama', 'tanggal_lahir', 'created_at'])) {
+            $query->orderBy($sortBy, $sortOrder === 'asc' ? 'asc' : 'desc');
+        } else {
+            $query->latest();
+        }
+
+        $limit = $request->get('limit', 20);
+        $peserta = $query->with('latestKunjungan')->paginate($limit);
 
         return response()->json([
             'success' => true,
